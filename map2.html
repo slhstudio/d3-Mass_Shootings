@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<link href='https://fonts.googleapis.com/css?family=Crete+Round:400,400italic' rel='stylesheet' type='text/css'>
+		<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,300,600' rel='stylesheet' type='text/css'>
+		<title>Some Data on Mass Shootings</title>
+		<script type="text/javascript" src="../d3/d3.v3.js"></script>
+		<style type="text/css">
+
+			body {
+				background: #faf9f0;
+			}
+			a:link {
+				color: #607f9f;
+				text-decoration: none;
+			}
+			a:visited {
+				color: #43596f;
+				text-decoration: none;
+			}
+			h1 {
+				text-align: center;
+				font-family: 'Crete Round', serif;
+				font-size: 22px;
+				font-weight: 400;
+			}
+			h2 {
+				width: 400px;
+				margin: auto;
+				font-family: 'Source Sans Pro', sans-serif;
+				font-size: 14px;
+				font-weight: 400;
+				line-height: 19px;
+			}
+			p  {
+				margin-left: 20%;
+				font-family: 'Source Sans Pro', sans-serif;
+				font-size: 12px;
+				font-weight: 400;
+			}
+
+			path {
+				stroke: #faf9f0;
+				stroke-width: 1px;
+				stroke-linejoin: round;
+				stroke-linecap: round;
+			}
+			.legend2 {
+	            font-family: 'Source Sans Pro', sans-serif;
+				font-size: 12px;
+				font-weight: 400;
+	         }
+	         .space {
+				margin-left: 500px;
+			}
+			
+			
+			
+
+		</style>
+	</head>
+	<body>
+		<br>
+		<br>
+		<h1>Mass Shootings in the United States: 2013—2015</h1>
+		<h2>This map focuses only on mass shootings in the last two years in order to better
+		reflect any possible correlation with current gun laws in each state. Darker states have more restrictions on gun sales than lighter states. </h2>
+		<br>
+		<script type="text/javascript">
+
+			//Width and height
+			var w = 1200;
+			var h = 550;
+
+			//Define map projection
+			var projection = d3.geo.albersUsa()
+								   .translate([w/2, h/2])
+								   .scale([1200]);
+
+			//Define path generator
+			var path = d3.geo.path()
+							 .projection(projection);
+
+			//Define quantize scale to sort data values into buckets of color
+			var color = d3.scale.quantize()
+								.range(["#cfd9e2","#9fb2c6","#708ca9","#4d6680","#303f50"]);
+								//Colors taken from colorbrewer.js
+
+			//Create SVG element
+			var svg = d3.select("body")
+						.append("svg")
+						.attr("width", w)
+						.attr("height", h);
+
+			var legend_info = {  0 : ["Legal weapon", "#86b300"],
+					    		 1 : ["Illegal weapon", "#ff471a"],
+					    		 2 : ["Unknown", "#e6b700"]
+					  		  }  
+
+			var legend = svg.append("g")
+	  						.attr("class", "legend2")
+	  						//.attr("transform", "translate(" + (w - 150) + "," + (h - 100) + ")")
+	  					    .selectAll("g")
+							.data([1,2,3])
+		      				.enter()
+		      				.append("g");
+
+						legend.each(function(d, i) {
+		        				var g = d3.select(this);
+		        				g.append("rect")
+		        				.attr("x", w - 180)
+		        				.attr("y", h - 140 + (i * 16))
+				          		 .attr("width", 10)
+				          		 .attr("height", 10)
+				          		 .style("fill", legend_info[String(i)][1]);
+		        
+		        				g.append("text")
+				          		 .attr("x", w - 162)
+				          		 .attr("y", h - 140 + (i * 16 + 8))
+				          		// .attr("height", 30)
+				          		// .attr("width", 100)
+				          		 .style("fill", legend_info[String(i)][1])
+				          		 .text(legend_info[String(i)][0]);
+		          	});
+
+
+
+			//Load in Brady_Scorecard data
+			d3.csv("Brady_Scorecard_2014.csv", function(data) {
+
+				//Set input domain for color scale
+				color.domain([
+					d3.min(data, function(d) { return d.value; }), 
+					d3.max(data, function(d) { return d.value; })
+				]);
+
+				//Load in GeoJSON data
+				d3.json("us-states.json", function(json) {
+
+					//Merge the ag. data and GeoJSON
+					//Loop through once for each ag. data value
+					for (var i = 0; i < data.length; i++) {
+				
+						//Grab state name
+						var dataState = data[i].state;
+						
+						//Grab data value, and convert from string to float
+						var dataValue = parseFloat(data[i].value);
+				
+						//Find the corresponding state inside the GeoJSON
+						for (var j = 0; j < json.features.length; j++) {
+						
+							var jsonState = json.features[j].properties.name;
+				
+							if (dataState == jsonState) {
+						
+								//Copy the data value into the JSON
+								json.features[j].properties.value = dataValue;
+								
+								//Stop looking through the JSON
+								break;
+								
+							}
+						}		
+					}
+
+					//Bind data and create one path per GeoJSON feature
+					svg.selectAll("path")
+						.data(json.features)
+						.enter()
+						.append("path")
+						.attr("d", path)
+						.style("fill", function(d) {
+					 	//Get data value
+					   		var value = d.properties.value;
+					   		
+					   		if (value) {
+					   			//If value exists…
+						   		return color(value);
+					   		} else {
+					   			//If value is undefined…
+						   		return "#ccc";
+					   		}
+					});
+
+					//Load in cities data
+					d3.csv("US-Mass-Shootings_1982-2015.csv", function(data) {
+
+						svg.selectAll("circle")
+							.data(data)
+							.enter()
+							.append("circle")
+							.attr("cx", function(d) {
+								if (d.Year > 2012) {
+									return projection([d.longitude, d.latitude])[0];
+								} else if (d.Year < 2013) {
+									return -10;
+								}
+							})
+							.attr("cy", function(d) {
+								if (d.Year > 2012)  {
+									return projection([d.longitude, d.latitude])[1];
+								} else if (d.Year < 2013) {
+									return -10; 
+								}
+							})
+							.attr("r", 10)
+						   .style("fill", function(d) {
+						   		if (d.legally === "Yes") {
+						   			return "#86b300";
+						   		} else if (d.legally === "Unknown") {
+						   			return "#e6b700";
+						   		} else {
+						   			return "#ff471a";
+						   		}
+						   })
+						   .style("opacity", 0.85);											
+					});			
+				});
+			});
+
+			
+			
+		</script>
+		<p>Source: Mass Shootings data from 
+			<a href = "http://www.motherjones.com/politics/2012/12/mass-shootings-mother-jones-full-data" target="_blank">Mother Jones Magazine</a>,<span class=space><a href = "../Mass shootings/scatterplot.html">NEXT ></a></span>
+			<br>
+	    	data on states' gun control laws from the 
+	    	<a href = "http://www.bradycampaign.org/scorecard-2015/crimadvisor/data/Brady-State-Scorecard-2014.pdf">Brady Campaign 2014 State Scorecard</a>.
+	    	
+	    </p>
+	</body>
+</html>

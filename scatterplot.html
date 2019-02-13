@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<link href='https://fonts.googleapis.com/css?family=Crete+Round:400,400italic' rel='stylesheet' type='text/css'>
+		<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,300,600' rel='stylesheet' type='text/css'>
+		<title>Some Data on Mass Shootings</title>
+		<script type="text/javascript" src="../d3/d3.v3.js"></script>
+		<style type="text/css">
+
+			body {
+				background: #faf9f0;
+
+			}
+			a:link {
+				color: #607f9f;
+				text-decoration: none;
+			}
+			a:visited {
+				color: #43596f;
+				text-decoration: none;
+			}
+			h1 {
+				text-align: center;
+				font-family: 'Crete Round', serif;
+				font-size: 22px;
+				font-weight: 400;
+				
+			}
+			p  {
+				margin-left: 20%;
+				font-family: 'Source Sans Pro', sans-serif;
+				font-size: 12px;
+				font-weight: 400;
+			}
+			div.tooltip2 {
+				position: absolute;
+				max-width: 200px;
+				height: auto;
+				padding: 10px;
+				font: 11.5px Source Sans Pro;
+				line-height: 14.5px;
+				background: white;
+				border-radius: 2px;
+				box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+				pointer-events: none;
+			}
+			.axis path,
+			.axis line {
+				fill: none;
+				stroke: gray;
+				stroke-width: .5px;
+				shape-rendering: crispEdges;
+			}
+			
+			.axis text {
+				font-family: 'Source Sans Pro', sans-serif;
+				font-size: 9.5px;
+				font-weight: 400;
+			}
+			.legend3 {
+	            font-family: 'Source Sans Pro', sans-serif;
+				font-size: 12px;
+				font-weight: 400;
+	        }
+	        .space {
+				margin-left: 500px;
+			}
+			
+		</style>
+	</head>
+	<body>
+		<br>
+		<br>
+		
+		<h1>Mass Shootings in the United States: 1982—2015</h1>
+		<br>
+		
+		<script type="text/javascript">
+
+			//Width and height
+			var w = 1200;
+			var h = 450;
+			var ypadding = 50;
+			var xpadding = 150;
+
+			//Create SVG element
+			var svg = d3.select("body")
+						.append("svg")
+						.attr("width", w)
+						.attr("height", h);
+
+			//Creat tootip div
+			var div = d3.select("body")
+						.append("div")
+						.attr("class", "tooltip2")
+						.style("opacity", 0);
+
+			var xScale = d3.scale.linear()
+								 .domain([0, 70])
+								 .range([xpadding, (w - xpadding)]);
+
+			var yScale = d3.scale.linear()
+								 .domain([0, 35])
+								 .range([h - ypadding, ypadding]);
+
+			//Define X axis
+			var xAxis = d3.svg.axis()
+							  .scale(xScale)
+							  .orient("bottom")
+							  .ticks(9, "Total Victims");
+							 // .tickFormat(formatAsPercentage);
+
+			//Define Y axis
+			var yAxis = d3.svg.axis()
+							  .scale(yScale)
+							  .orient("left")
+							  .ticks(8, "Fatalities");
+							  
+							  //.tickFormat(formatAsPercentage);
+
+			//Define legend 
+			var legend_info = {  0 : ["Assault weapon", "#cc0000"],
+					    		 1 : ["Non-assault weapon", "#90a5bc"]
+					  		  }  
+
+			var legend = svg.append("g")
+	  						.attr("class", "legend3")
+	  						//.attr("transform", "translate(" + (w - 150) + "," + (h - 100) + ")")
+	  					    .selectAll("g")
+							.data([1,2])
+		      				.enter()
+		      				.append("g");
+
+					legend.each(function(d, i) {
+		        			var g = d3.select(this);
+		        			g.append("rect")
+		        			.attr("x", xpadding + 15)
+		        			.attr("y", h - xpadding * 2.342 + (i * 16))
+				          	.attr("width", 10)
+				          	.attr("height", 10)
+				          	.style("fill", legend_info[String(i)][1]);
+		        
+		        			g.append("text")
+				          	.attr("x", xpadding + 32)
+				          	.attr("y", h - xpadding * 2.342 + (i * 16 + 8))
+				          	.style("fill", legend_info[String(i)][1])
+				          	.text(legend_info[String(i)][0]);
+		          	});
+
+			//Load in shootings data
+			d3.csv("US-Mass-Shootings_1982-2015.csv", function(data) {
+
+				var scatter = svg.selectAll("circle")
+								 .data(data)
+								 .enter()
+								 .append("circle")
+				
+				scatter.attr("cx", function(d) {
+							return xScale(d.Totalvictims);
+						})	
+						.attr("cy", function(d) {
+							return yScale(d.Fatalities);
+						})
+						.attr("r", 4)
+						.style("fill", function(d) {
+							 if (d.assault === "Yes") {
+							   	return "#cc0000";
+							 } else {
+							   	return "#90a5bc";
+							 }
+						})
+						.on("mouseover", function(d) {
+							div.transition()
+								.duration(500)
+								.style("opacity", 0);
+							div.transition()
+								.duration(200)
+								.style("opacity", .9);
+
+							//get tooltip position and value
+							div.html("<strong>" + d.Case + "</strong>" + "<br/>" + "Total Victims: " + d.Totalvictims + "<br/>" + "Fatalities: " + d.Fatalities + "<br/>" + d.Location + "<br/>" + d.Date)
+								.style("left", (d3.event.pageX + 10) + "px")
+								.style("top", (d3.event.pageY) + "px");
+							})
+					   
+			   			.on("mouseout", function(d) {
+							//Hide the tooltip
+							div.transition()
+								.duration(500)
+								.style("opacity", 0);
+				   		})
+			});
+			//Create X axis
+			svg.append("g")
+				.attr("class", "axis")
+				.attr("transform", "translate(0," + (h - ypadding) + ")")
+				.call(xAxis);
+
+			svg.append("text")
+        		.attr("transform", "translate(" + (w - xpadding) + " ," + (h - ypadding/3) + ")")
+        		.attr("dy", "-.25em")
+        		.style("text-anchor", "middle")
+        		.style("font", "10px Source Sans Pro")
+        		.text("Total Victims");
+			
+			//Create Y axis
+			svg.append("g")
+				.attr("class", "axis")
+				.attr("transform", "translate(" + xpadding + ",0)")
+				.call(yAxis);
+
+					// Add the text label for the Y axis
+		    svg.append("text")
+		        .attr("transform", "translate(" + ypadding * 2 + ", " + xpadding/3.5 + ")")//"rotate(-90)")
+		       // .attr("y", 0 + 100)
+		       // .attr("x",0 - (h / 2))
+		        .attr("dy", "1em")
+		        .style("text-anchor", "middle")
+		        .style("font", "10px Source Sans Pro")
+		        .text("Fatalities");
+	
+			
+		</script>
+		<p>Source: Mass Shootings data from <a href = "http://www.motherjones.com/politics/2012/12/mass-shootings-mother-jones-full-data" target="_blank">Mother Jones Magazine</a><span class=space><a href = "../Mass shootings/bar_graph.html">NEXT ></a></span></p>
+	    <p>*as classified by the Mother Jones data</p>
+	</body>
+</html>

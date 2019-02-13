@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<link href='https://fonts.googleapis.com/css?family=Crete+Round:400,400italic' rel='stylesheet' type='text/css'>
+		<link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,300,600' rel='stylesheet' type='text/css'>
+		<title>Some Data on Mass Shootings</title>
+		<script type="text/javascript" src="../d3/d3.v3.js"></script>
+		<style type="text/css">
+
+			body {
+				background: #faf9f0;
+			}
+			a:link {
+				color: #607f9f;
+				text-decoration: none;
+			}
+			a:visited {
+				color: #43596f;
+				text-decoration: none;
+			}
+			h1 {
+				text-align: center;
+				font-family: 'Crete Round', serif;
+				font-size: 22px;
+				font-weight: 400;
+			}
+			p  {
+				margin-left: 20%;
+				font-family: 'Source Sans Pro', sans-serif;
+				font-size: 12px;
+				font-weight: 400;
+			}
+			.axis {
+				font-family: 'Source Sans Pro', sans-serif;
+				font-size: 10px;
+				font-weight: 400;
+			}
+
+			.axis path,
+			.axis line {
+				fill: none;
+				stroke: gray;
+				stroke-width: .5px;
+				shape-rendering:crispEdges;
+			}
+			#tooltip3 {
+				text-anchor: middle;
+				font: 10px sans-serif;
+				font-weight: regular;
+				fill: white;
+				pointer-events: none;
+			}
+			.space {
+				margin-left: 500px;
+			}
+			
+		</style>
+	</head>
+	<body>
+		<br>
+		<br>
+		<h1>Mass Shootings in the United States: 1982—2015</h1>
+		<br>
+		
+		<script type="text/javascript">
+			//Width and height
+			var margin = {top: 30, right: 100, bottom: 50, left: 100},
+				w = 1200 - margin.left - margin.right,
+			    h = 400 - margin.top - margin.bottom;
+
+			 var x = d3.scale.ordinal().rangeRoundBands([0, w], .05);
+
+			 var y = d3.scale.linear().range([h, 0]);	
+
+			 var xAxis = d3.svg.axis()
+			 				.scale(x)
+			 				.orient("bottom");
+
+
+			 var svg = d3.select("body")
+			 			 .append("svg")
+			 			 .attr("width", w + margin.left + margin.right)
+			 			 .attr("height", h + margin.top + margin.bottom)
+			 			 .append("g")
+			 			 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");	
+
+			//Load in shootings data
+			d3.csv("byYear.csv", function(data) {
+
+
+				x.domain(data.map(function(d) { return d.date; }));
+				y.domain([0, d3.max(data, function(d) {return d.value; })]);
+
+				svg.append("g")
+					.attr("class", "x axis")
+					.attr("transform", "translate(0," + h + ")")
+					.call(xAxis)
+					.selectAll("text")
+					.style("text-anchor", "end")
+					.attr("dx", "-.8em")
+					.attr("dy", "-.55em")
+					.attr("transform", "rotate(-90)" );
+
+				svg.append("g")
+      				.attr("class", "y axis")
+    				.append("text")
+      				.attr("transform", "rotate(-90)")
+      				.attr("y", -10)
+      				.attr("x",-198)
+      				.attr("dy", ".71em")
+      				.style("text-anchor", "end")
+      				.text("Number of Mass Shootings");
+
+				svg.selectAll("bar")
+					.data(data)
+					.enter()
+					.append("rect")
+					.attr("x", function(d) { return x(d.date); })
+					.attr("width", x.rangeBand())
+					.attr("y", function(d) { return y(d.value); })
+					.attr("height", function(d) {return h - y(d.value); })
+					.attr("fill", "#afbfcf")
+					.on("mouseover", function(d) {
+						d3.select(this)
+							.attr("fill", "#cc0000");
+
+					//Get this bar's x/y values, then augment for the tooltip
+					var xPosition = parseFloat(d3.select(this).attr("x")) + x.rangeBand() / 2;
+					var yPosition = parseFloat(d3.select(this).attr("y")) + 14;
+
+					//Create the tooltip label
+					svg.append("text")
+					   .attr("id", "tooltip3")
+					   .attr("x", xPosition)
+					   .attr("y", yPosition)
+					   .text(d.value);
+					})
+
+					.on("mouseout", function(d) {
+						d3.select(this)
+							.transition()
+				   			.duration(250)
+							.attr("fill", "#90a5bc");
+
+							//Remove the tooltip
+						d3.select("#tooltip3").remove()
+							.transition()
+				   			.duration(250);
+					})				
+				
+				})			
+     
+		</script>
+		<p>Source: Mass Shootings data from <a href = "http://www.motherjones.com/politics/2012/12/mass-shootings-mother-jones-full-data" target="_blank">Mother Jones Magazine</a><span class=space><a href = "../Mass shootings/index.html">NEXT ></a></span></p>
+	    
+	</body>
+</html>
